@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                git 'https://github.com/aliasgar-kaeed-challawala/sample-web-app-jenkins.git'
+                git branch:'main',url: 'https://github.com/aliasgar-kaeed-challawala/sample-web-app-jenkins.git'
             }
         }
 
