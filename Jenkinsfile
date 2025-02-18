@@ -2,10 +2,13 @@ pipeline {
     agent any
     
     environment {
-        // Replace 'your-dockerhub-username' with your actual Docker Hub username
+        // Store Docker Hub credentials
         DOCKERHUB_CREDENTIALS = credentials('dockerhub')
+        // Define application name
         APP_NAME = "sample-web-app"
-        DOCKER_IMAGE = "akc27/${APP_NAME}"
+        // Define Docker image name
+        DOCKER_IMAGE_NAME = "akc27/${APP_NAME}"
+        // Define image tag
         IMAGE_TAG = "${BUILD_NUMBER}-${new Date().format('yyyyMMdd_HHmmss')}"
     }
     
@@ -25,8 +28,8 @@ pipeline {
                 script {
                     // Build with both specific tag and latest
                     sh """
-                        docker build -t ${DOCKER_IMAGE}:${IMAGE_TAG} .
-                        docker tag ${DOCKER_IMAGE}:${IMAGE_TAG} ${DOCKER_IMAGE}:latest
+                        docker build -t ${DOCKER_IMAGE_NAME}:${IMAGE_TAG} .
+                        docker tag ${DOCKER_IMAGE_NAME}:${IMAGE_TAG} ${DOCKER_IMAGE_NAME}:latest
                     """
                 }
             }
@@ -41,8 +44,8 @@ pipeline {
         stage('Push to DockerHub') {
             steps {
                 sh """
-                    docker push ${DOCKER_IMAGE}:${IMAGE_TAG}
-                    docker push ${DOCKER_IMAGE}:latest
+                    docker push ${DOCKER_IMAGE_NAME}:${IMAGE_TAG}
+                    docker push ${DOCKER_IMAGE_NAME}:latest
                 """
             }
         }
@@ -51,19 +54,19 @@ pipeline {
             steps {
                 script {
                     // Stop and remove existing container if it exists
-                    sh '''
+                    sh """
                         if docker ps -a | grep -q ${APP_NAME}; then
-                            docker stop ${APP_NAME}
-                            docker rm ${APP_NAME}
+                            docker stop ${APP_NAME} || true
+                            docker rm ${APP_NAME} || true
                         fi
-                    '''
+                    """
                     
                     // Run new container
                     sh """
                         docker run -d \
                             --name ${APP_NAME} \
                             -p 3000:3000 \
-                            ${DOCKER_IMAGE}:${IMAGE_TAG}
+                            ${DOCKER_IMAGE_NAME}:${IMAGE_TAG}
                     """
                 }
             }
@@ -72,12 +75,15 @@ pipeline {
     
     post {
         always {
-            // Cleanup
-            sh """
-                docker logout
-                docker rmi ${DOCKER_IMAGE}:${IMAGE_TAG} ${DOCKER_IMAGE}:latest || true
-            """
-            cleanWs()
+            script {
+                // Cleanup
+                sh """
+                    docker logout || true
+                    docker rmi ${DOCKER_IMAGE_NAME}:${IMAGE_TAG} || true
+                    docker rmi ${DOCKER_IMAGE_NAME}:latest || true
+                """
+                cleanWs()
+            }
         }
         success {
             echo "Success: Application deployed at http://localhost:3000"
