@@ -1,79 +1,56 @@
 pipeline {
     agent any
-    
+
     environment {
-        // Docker Hub credentials
-        DOCKERHUB_CREDENTIALS = credentials('dockerhub')
-        // App name
-        APP_NAME = 'sample-web-app'
-        // Build tag with timestamp
-        BUILD_TAG = "${BUILD_NUMBER}"
+        DOCKER_IMAGE = 'your-dockerhub-username/docker-jenkins-app:latest'
+        DOCKER_CREDENTIALS_ID = 'docker-hub-credentials'
     }
-    
+
     stages {
-        stage('Checkout') {
+        stage('Clone Repository') {
             steps {
-                cleanWs()
-                git branch: 'main',
-                    url: 'https://github.com/aliasgar-kaeed-challawala/sample-web-app-jenkins.git'
+                git 'https://github.com/aliasgar-kaeed-challawala/sample-web-app-jenkins.git'
             }
         }
-        
+
         stage('Build Docker Image') {
             steps {
-                sh """
-                    docker build -t ${DOCKERHUB_CREDENTIALS_USR}/${APP_NAME}:${BUILD_TAG} .
-                    docker tag ${DOCKERHUB_CREDENTIALS_USR}/${APP_NAME}:${BUILD_TAG} ${DOCKERHUB_CREDENTIALS_USR}/${APP_NAME}:latest
-                """
+                script {
+                    sh 'docker build -t $DOCKER_IMAGE .'
+                }
             }
         }
-        
-        stage('Login to DockerHub') {
+
+        stage('Login to Docker Hub') {
             steps {
-                sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
+                script {
+                    withCredentials([string(credentialsId: DOCKER_CREDENTIALS_ID, variable: 'DOCKER_PASSWORD')]) {
+                        sh "echo $DOCKER_PASSWORD | docker login -u your-dockerhub-username --password-stdin"
+                    }
+                }
             }
         }
-        
-        stage('Push to DockerHub') {
+
+        stage('Push to Docker Hub') {
             steps {
-                sh """
-                    docker push ${DOCKERHUB_CREDENTIALS_USR}/${APP_NAME}:${BUILD_TAG}
-                    docker push ${DOCKERHUB_CREDENTIALS_USR}/${APP_NAME}:latest
-                """
+                script {
+                    sh 'docker push $DOCKER_IMAGE'
+                }
             }
         }
-        
-        stage('Deploy Container') {
+
+        stage('Deploy and Run Container') {
             steps {
-                sh """
-                    if docker ps -a | grep -q ${APP_NAME}; then
-                        docker stop ${APP_NAME} || true
-                        docker rm ${APP_NAME} || true
-                    fi
-                    
-                    docker run -d \
-                        --name ${APP_NAME} \
-                        -p 3000:3000 \
-                        ${DOCKERHUB_CREDENTIALS_USR}/${APP_NAME}:${BUILD_TAG}
-                """
+                script {
+                    sh 'docker run -d -p 3000:3000 $DOCKER_IMAGE'
+                }
             }
         }
     }
-    
+
     post {
         always {
-            sh """
-                docker logout || true
-                docker rmi ${DOCKERHUB_CREDENTIALS_USR}/${APP_NAME}:${BUILD_TAG} || true
-                docker rmi ${DOCKERHUB_CREDENTIALS_USR}/${APP_NAME}:latest || true
-            """
-            cleanWs()
-        }
-        success {
-            echo "Success: Application deployed at http://localhost:3000"
-        }
-        failure {
-            echo "Failed: Check the logs for details"
+            sh 'docker logout'
         }
     }
 }
