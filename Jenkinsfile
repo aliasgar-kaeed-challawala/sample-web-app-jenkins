@@ -6,10 +6,10 @@ pipeline {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub')
         // Define application name
         APP_NAME = "sample-web-app"
-        // Define Docker image name
-        DOCKER_IMAGE_NAME = "akc27/${APP_NAME}"
-        // Define image tag
-        IMAGE_TAG = "${BUILD_NUMBER}-${new Date().format('yyyyMMdd_HHmmss')}"
+        // Define Docker image details
+        DOCKER_REGISTRY = "akc27"
+        IMAGE_NAME = "${APP_NAME}"
+        IMAGE_TAG = "${BUILD_NUMBER}"
     }
     
     stages {
@@ -26,10 +26,11 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
+                    def fullImageName = "${DOCKER_REGISTRY}/${IMAGE_NAME}"
                     // Build with both specific tag and latest
                     sh """
-                        docker build -t ${DOCKER_IMAGE_NAME}:${IMAGE_TAG} .
-                        docker tag ${DOCKER_IMAGE_NAME}:${IMAGE_TAG} ${DOCKER_IMAGE_NAME}:latest
+                        docker build -t ${fullImageName}:${IMAGE_TAG} .
+                        docker tag ${fullImageName}:${IMAGE_TAG} ${fullImageName}:latest
                     """
                 }
             }
@@ -43,30 +44,31 @@ pipeline {
         
         stage('Push to DockerHub') {
             steps {
-                sh """
-                    docker push ${DOCKER_IMAGE_NAME}:${IMAGE_TAG}
-                    docker push ${DOCKER_IMAGE_NAME}:latest
-                """
+                script {
+                    def fullImageName = "${DOCKER_REGISTRY}/${IMAGE_NAME}"
+                    sh """
+                        docker push ${fullImageName}:${IMAGE_TAG}
+                        docker push ${fullImageName}:latest
+                    """
+                }
             }
         }
         
         stage('Deploy Container') {
             steps {
                 script {
+                    def fullImageName = "${DOCKER_REGISTRY}/${IMAGE_NAME}"
                     // Stop and remove existing container if it exists
                     sh """
                         if docker ps -a | grep -q ${APP_NAME}; then
                             docker stop ${APP_NAME} || true
                             docker rm ${APP_NAME} || true
                         fi
-                    """
-                    
-                    // Run new container
-                    sh """
+                        
                         docker run -d \
                             --name ${APP_NAME} \
                             -p 3000:3000 \
-                            ${DOCKER_IMAGE_NAME}:${IMAGE_TAG}
+                            ${fullImageName}:${IMAGE_TAG}
                     """
                 }
             }
@@ -76,12 +78,16 @@ pipeline {
     post {
         always {
             script {
-                // Cleanup
-                sh """
-                    docker logout || true
-                    docker rmi ${DOCKER_IMAGE_NAME}:${IMAGE_TAG} || true
-                    docker rmi ${DOCKER_IMAGE_NAME}:latest || true
-                """
+                try {
+                    def fullImageName = "${DOCKER_REGISTRY}/${IMAGE_NAME}"
+                    sh """
+                        docker logout || true
+                        docker rmi ${fullImageName}:${IMAGE_TAG} || true
+                        docker rmi ${fullImageName}:latest || true
+                    """
+                } catch (Exception e) {
+                    echo "Error during cleanup: ${e.message}"
+                }
                 cleanWs()
             }
         }
@@ -93,3 +99,4 @@ pipeline {
         }
     }
 }
+
