@@ -3,9 +3,14 @@ const app = express();
 const port = 3000;
 
 app.get('/', (req, res) => {
-  res.send('Hello from Docker Container!');
+    res.send('Hello from Docker Container!');
 });
 
-app.listen(port, () => {
-  console.log(`App listening at http://localhost:${port}`);
-});
+// Only start the server if this file is run directly
+if (require.main === module) {
+    app.listen(port, () => {
+        console.log(`App listening at http://localhost:${port}`);
+    });
+}
+
+module.exports = app; // Export the app for testing
