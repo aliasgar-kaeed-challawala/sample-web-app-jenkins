@@ -28,6 +28,7 @@ pipeline {
                         script {
                             sh '''
                                 docker run --rm -v $(pwd):/app -w /app node:14-alpine sh -c "
+                                rm -rf /app/node_modules &&
                                 npm cache clean --force &&
                                 npm install --legacy-peer-deps &&
                                 npm test
@@ -42,6 +43,7 @@ pipeline {
                         script {
                             sh '''
                                 docker run --rm -v $(pwd):/app -w /app node:14-alpine sh -c "
+                                rm -rf /app/node_modules &&
                                 npm cache clean --force &&
                                 npm install --legacy-peer-deps &&
                                 npx audit-ci --high
