@@ -2,21 +2,21 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = 'your-dockerhub-username/docker-jenkins-app:latest'
-        DOCKER_CREDENTIALS_ID = 'docker-hub-credentials'
+        DOCKER_IMAGE = "akc27/docker-jenkins-app:latest"
+        DOCKER_CREDENTIALS_ID = "docker-hub-credentials"
     }
 
     stages {
         stage('Clone Repository') {
             steps {
-                git branch:'main',url: 'https://github.com/aliasgar-kaeed-challawala/sample-web-app-jenkins.git'
+                git branch: 'main', url: 'https://github.com/aliasgar-kaeed-challawala/sample-web-app-jenkins.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
-                    sh 'docker build -t $DOCKER_IMAGE .'
+                    sh "docker build -t ${DOCKER_IMAGE} ."
                 }
             }
         }
@@ -24,8 +24,10 @@ pipeline {
         stage('Login to Docker Hub') {
             steps {
                 script {
-                    withCredentials([string(credentialsId: DOCKER_CREDENTIALS_ID, variable: 'DOCKER_PASSWORD')]) {
-                        sh "echo $DOCKER_PASSWORD | docker login -u your-dockerhub-username --password-stdin"
+                    withCredentials([string(credentialsId: 'docker-hub-credentials', variable: 'DOCKER_PASSWORD')]) {
+                        sh '''
+                            echo "$DOCKER_PASSWORD" | docker login -u akc27 --password-stdin
+                        '''
                     }
                 }
             }
@@ -34,7 +36,7 @@ pipeline {
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    sh 'docker push $DOCKER_IMAGE'
+                    sh "docker push ${DOCKER_IMAGE}"
                 }
             }
         }
@@ -42,7 +44,7 @@ pipeline {
         stage('Deploy and Run Container') {
             steps {
                 script {
-                    sh 'docker run -d -p 3000:3000 $DOCKER_IMAGE'
+                    sh "docker run -d -p 3000:3000 ${DOCKER_IMAGE}"
                 }
             }
         }
