@@ -24,6 +24,11 @@ pipeline {
                 }
 
                 stage('Run Unit Tests') {
+                    agent{
+                        docker{
+                            image 'node:14-alpine'
+                        }
+                    }
                     steps {
                         script {
                             sh '''
@@ -35,6 +40,11 @@ pipeline {
                 }
 
                 stage('Run Security Tests') {
+                    agent {
+                        docker {
+                            image 'node:14-alpine'
+                        }
+                    }
                     steps {
                         script {
                             sh '''
