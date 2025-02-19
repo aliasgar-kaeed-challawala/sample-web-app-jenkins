@@ -28,9 +28,8 @@ pipeline {
                         script {
                             sh '''
                                 docker run --rm -v $(pwd):/app -w /app node:14-alpine sh -c "
-                                rm -rf /app/node_modules &&
                                 npm cache clean --force &&
-                                npm install --legacy-peer-deps &&
+                                npm ci --unsafe-perm &&
                                 npm test
                                 "
                             '''
@@ -43,9 +42,8 @@ pipeline {
                         script {
                             sh '''
                                 docker run --rm -v $(pwd):/app -w /app node:14-alpine sh -c "
-                                rm -rf /app/node_modules &&
                                 npm cache clean --force &&
-                                npm install --legacy-peer-deps &&
+                                npm ci --unsafe-perm &&
                                 npx audit-ci --high
                                 "
                             '''
@@ -55,22 +53,15 @@ pipeline {
             }
         }
 
-        stage('Login to Docker Hub') {
+        stage('Push to Docker Hub') {
             steps {
                 script {
                     withCredentials([string(credentialsId: 'docker-hub-credentials', variable: 'DOCKER_PASSWORD')]) {
                         sh '''
                             echo "$DOCKER_PASSWORD" | docker login -u akc27 --password-stdin
+                            docker push ${DOCKER_IMAGE}
                         '''
                     }
-                }
-            }
-        }
-
-        stage('Push to Docker Hub') {
-            steps {
-                script {
-                    sh "docker push ${DOCKER_IMAGE}"
                 }
             }
         }
