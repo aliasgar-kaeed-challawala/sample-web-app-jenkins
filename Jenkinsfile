@@ -24,32 +24,26 @@ pipeline {
                 }
 
                 stage('Run Unit Tests') {
-                    agent{
-                        docker{
-                            image 'node:14-alpine'
-                        }
-                    }
                     steps {
                         script {
                             sh '''
-                                npm install
+                                docker run --rm -v $(pwd):/app -w /app node:14-alpine sh -c "
+                                npm install &&
                                 npm test
+                                "
                             '''
                         }
                     }
                 }
 
                 stage('Run Security Tests') {
-                    agent {
-                        docker {
-                            image 'node:14-alpine'
-                        }
-                    }
                     steps {
                         script {
                             sh '''
-                                npm install
-                                npm audit --audit-level=high || echo "Security vulnerabilities found!"
+                                docker run --rm -v $(pwd):/app -w /app node:14-alpine sh -c "
+                                npm install &&
+                                npx audit-ci --high
+                                "
                             '''
                         }
                     }
