@@ -28,6 +28,7 @@ pipeline {
                         script {
                             sh '''
                                 docker run --rm -v $(pwd):/app -w /app node:14-alpine sh -c "
+                                rm -rf node_modules package-lock.json &&
                                 npm cache clean --force &&
                                 npm ci --unsafe-perm &&
                                 npm test
@@ -42,6 +43,7 @@ pipeline {
                         script {
                             sh '''
                                 docker run --rm -v $(pwd):/app -w /app node:14-alpine sh -c "
+                                rm -rf node_modules package-lock.json &&
                                 npm cache clean --force &&
                                 npm ci --unsafe-perm &&
                                 npx audit-ci --high
