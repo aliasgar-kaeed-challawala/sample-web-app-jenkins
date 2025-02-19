@@ -13,10 +13,36 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    sh "docker build -t ${DOCKER_IMAGE} ."
+        stage('Build & Test') {
+            parallel {
+                stage('Build Docker Image') {
+                    steps {
+                        script {
+                            sh "docker build -t ${DOCKER_IMAGE} ."
+                        }
+                    }
+                }
+
+                stage('Run Unit Tests') {
+                    steps {
+                        script {
+                            sh '''
+                                npm install
+                                npm test
+                            '''
+                        }
+                    }
+                }
+
+                stage('Run Security Tests') {
+                    steps {
+                        script {
+                            sh '''
+                                npm install
+                                npm audit --audit-level=high || echo "Security vulnerabilities found!"
+                            '''
+                        }
+                    }
                 }
             }
         }
