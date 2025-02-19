@@ -27,10 +27,8 @@ pipeline {
                     steps {
                         script {
                             sh '''
-                                docker run --rm -v $(pwd):/app -w /app node:14-alpine sh -c "
-                                rm -rf node_modules package-lock.json &&
-                                npm cache clean --force &&
-                                npm ci --unsafe-perm &&
+                                docker run --rm -v $(pwd):/app -w /app node:18-alpine sh -c "
+                                npm ci &&
                                 npm test
                                 "
                             '''
@@ -42,10 +40,8 @@ pipeline {
                     steps {
                         script {
                             sh '''
-                                docker run --rm -v $(pwd):/app -w /app node:14-alpine sh -c "
-                                rm -rf node_modules package-lock.json &&
-                                npm cache clean --force &&
-                                npm ci --unsafe-perm &&
+                                docker run --rm -v $(pwd):/app -w /app node:18-alpine sh -c "
+                                npm ci &&
                                 npx audit-ci --high
                                 "
                             '''
@@ -55,15 +51,22 @@ pipeline {
             }
         }
 
-        stage('Push to Docker Hub') {
+        stage('Login to Docker Hub') {
             steps {
                 script {
                     withCredentials([string(credentialsId: 'docker-hub-credentials', variable: 'DOCKER_PASSWORD')]) {
                         sh '''
                             echo "$DOCKER_PASSWORD" | docker login -u akc27 --password-stdin
-                            docker push ${DOCKER_IMAGE}
                         '''
                     }
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                script {
+                    sh "docker push ${DOCKER_IMAGE}"
                 }
             }
         }
